@@ -87,13 +87,21 @@ public:
 
 //=======================================================
 
-template <class T>
-class IIterator
+enum class Position //перечисление для установки позиции
 {
-public:
-    virtual const T* begin() = 0;
-    virtual const T* end() = 0;
+    begin,
+    end
+};
 
+template <class T>
+class IIterator {
+public:
+	virtual bool hasNext() = 0;
+	virtual bool hasPrev() = 0;
+    virtual T * getNext() = 0;
+	virtual T * getPrev() = 0;
+    virtual void setPosition(Position) = 0;  
+	
 };
 
 template <class T>
@@ -101,62 +109,104 @@ class VectorIterator: public IIterator<T>
 {
 private:
     std::vector<T>& m_vector;
-    T* m_ptr;
+    size_t m_pos;
 public:
-
     VectorIterator(std::vector<T>& _vector) 
-    : m_vector(_vector), m_ptr(nullptr) {};
-
-    const T* begin() 
+    : m_vector(_vector), m_pos(0) {};
+    bool hasNext() override { return (m_pos < m_vector.size()); }
+    bool hasPrev() override { return  (m_pos != 0); }
+    T* getNext() override 
     {
-        if (m_vector.size() > 0)
-            ptr = &m_vector[0];
-        return ptr;
+        if (this->hasNext())
+            {
+                return &*(std::next(m_vector.begin(), m_pos++));
+            }
+        return nullptr;
+    }
+    T* getPrev() override 
+    {
+        if (this->hasPrev()) 
+            return &*(std::next(m_vector.begin(), --m_pos));
+        return nullptr;
     }
 
-    const T* end() 
+    void setPosition(Position _pos) override
     {
-        if (m_vector.size() > 0)
-            ptr = this->begin() + m_vector.size();
-        return ptr;
+        switch (_pos)
+        {
+            case Position::begin:
+                m_pos = 0;
+                break;
+            case Position::end:
+                m_pos = m_vector.size();
+                break;
+        }
     }
-
-    const T* rbegin() 
-    {
-        return this->end() - 1;
-    }
-
-    const T* rend() 
-    {
-        return this->begin() - 1;
-    }
-
-    VectorIterator& operator++() 
-    {
-        return ptr--;
-    }
-
 };
 
 template <class T>
 class ArrayIterator: public IIterator<T> 
 {
 private:
-    std::array<T, 5>& m_array;
+    std::array<T , 50>& m_array;
+    size_t m_pos;
 public:
-
-    ArrayIterator(std::array<T, 5>&  _array) 
-    :  m_array(_array) {};
-
-    const T* begin() 
+    ArrayIterator(std::array<T, 50>& _array) 
+    : m_array(_array), m_pos(0) {};
+    bool hasNext() override { return (m_pos < m_array.size()); }
+    bool hasPrev() override { return  (m_pos != 0); }
+    T* getNext() override 
     {
-        return &m_array[0];
+        if (this->hasNext())
+            {
+                return &m_array[m_pos++];
+            }
+        return nullptr;
+    }
+    T* getPrev() override 
+    {
+        if (this->hasPrev()) 
+            return &m_array[--m_pos];
+        return nullptr;
     }
 
-    const T* end() 
+    void setPosition(Position _pos) override
     {
-        return (this->begin() + m_array.size());
+        switch (_pos)
+        {
+            case Position::begin:
+                m_pos = 0;
+                break;
+            case Position::end:
+                m_pos = m_array.size();
+                break;
+        }
     }
+};
+
+class SomeData //пользовательский тип данных для проверки
+{
+private:
+    std::string m_string;
+public:
+    SomeData(size_t _num) 
+    {
+        m_string = "Some Data: " + std::to_string(_num);
+    }
+    std::string getData() const 
+    {
+        return m_string;
+    }
+
+    SomeData operator*()
+    {
+        return *this;
+    }
+};
+
+std::ostream& operator<<(std::ostream& _out, const SomeData& _data)
+{
+    return _out << _data.getData() << std::endl;
 };
 
 //=======================================================
@@ -269,13 +319,37 @@ int main()
 
     std::cout << "//=======================================================" << std::endl;
 
-    std::vector<int> vec = {1, 2, 3, 4, 5, 6, 7, 8};
+    std::vector<int> vec = {1, 2, 3, 4, 5, 6, 7, 8}; //вектор int
     VectorIterator vecIt(vec);
-    std::for_each(vecIt.begin(), vecIt.end(),[](auto _el){std::cout << _el << " ";});
+    vecIt.setPosition(Position::end);
+    while (vecIt.hasPrev()) 
+    {
+        std::cout << *vecIt.getPrev() << " ";
+    }
     std::cout << std::endl;
-    std::array<int, 5> arr = {1, 2, 3, 4, 5};
-    ArrayIterator arrIt(arr);
-    std::for_each(arrIt.begin(), arrIt.end(),[](auto _el){std::cout << _el << " ";});
+    vecIt.setPosition(Position::begin);
+    while (vecIt.hasNext()) 
+    {
+        std::cout << *vecIt.getNext() << " ";
+    }
+    std::cout << std::endl;
+    std::array<SomeData*,50> Data; //пользовательский тип данных в массиве
+    for (size_t i = 0; i < 50; i++) 
+    {
+        Data[i] = new SomeData(i);
+    }
+    
+    ArrayIterator dataIt(Data);
+    dataIt.setPosition(Position::begin);
+    while (dataIt.hasNext()) 
+    {
+        std::cout << **dataIt.getNext() << " ";
+    }
+    std::cout << std::endl;
+    while (dataIt.hasPrev()) 
+    {
+        delete *dataIt.getPrev();
+    }
 
     std::cout << "\n//=======================================================" << std::endl;
 
