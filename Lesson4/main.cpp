@@ -4,374 +4,371 @@
 #include <vector>
 #include <array>
 #include <algorithm>
-#include <string>
 
-class Strategy
-{
+//Fabric Method
+
+class Pizza{
 public:
-    virtual ~Strategy() = default;
-    virtual std::string Divide() = 0;
+   virtual void info() {};
+   virtual void bake() {};
+   virtual void cut() {};
+   virtual void box() {};
+   virtual ~Pizza() {};
 };
 
-class DivideByScreenWidth: public Strategy
+class CheesePizza: public Pizza
 {
 public:
-    std::string Divide()
+    void info() override
     {
-        return "DivideByScreenWidth by screen width";
+        std::cout<< "Cheese Pizza" << std::endl;
+    };
+    void bake() override {};
+    void cut() override {};
+    void box() override {};
+};
+class GreekPizza: public Pizza
+{
+public:
+    void info() override  
+    {
+        std::cout<< "Greek Pizza" << std::endl;
+    };
+    void bake() override {};
+    void cut() override {};
+    void box() override {};
+};
+class PepperoniPizza: public Pizza
+{
+public:
+    void info() override
+    {
+        std::cout<< "Pepperoni Pizza" << std::endl;
+    };
+    void bake() override {};
+    void cut() override {};
+    void box() override {};
+};
+
+class PizzaFactory 
+{
+public:
+    virtual Pizza* createPizza() = 0;    
+    virtual ~PizzaFactory() {};
+};
+
+class CreateCheesePizza: public PizzaFactory
+{
+public:
+
+    Pizza* createPizza() 
+    {
+        return new CheesePizza;
     }
 };
 
-class  DivideBySentence: public Strategy
+class CreateGreekPizza: public PizzaFactory
 {
 public:
-    std::string Divide()
+    Pizza* createPizza() 
     {
-        return "Divided by Sentences";
+        return new GreekPizza;
     }
 };
 
-class DivideByUserWidth: public Strategy
+class CreatePepperoniPizza: public PizzaFactory 
 {
 public:
-    std::string Divide()
+    Pizza* createPizza() 
     {
-        return "DivideByScreenWidth by user width";
+        return new PepperoniPizza;
     }
 };
 
+void PrintOrder(Pizza* _pizza) 
+{
+    _pizza->info();
+};
 
+//=======================================================
+//Builder
 
-class TextWork
+class Events{
+public:
+   virtual void getEvent() = 0;
+   virtual ~Events() {};
+};
+
+class Hotel: public Events{
+public:
+   void getEvent() {
+       std::cout << "Booking Hotel" << std::endl;
+   }
+};
+
+class Park: public Events{
+   void getEvent() {
+       std::cout << "Park visiting" << std::endl;
+   }
+};
+
+class Food: public Events{
+public:
+   virtual void getEvent() = 0;
+   virtual ~Food() {};
+};
+
+class Dinner: public Food{
+public:
+   Dinner() : _type("dinner") {}
+   void getEvent(){
+       std::cout << "Food " << _type << std::endl;
+   } ;
+private:
+   std::string _type;
+};
+
+class Lunch: public Food{
+public:
+   Lunch() : _type("lunch") {}
+   void getEvent(){
+       std::cout << "Food " << _type << std::endl;
+   } ;
+private:
+   std::string _type;
+};
+
+class Breakfast: public Food{
+public:
+   Breakfast() : _type("breakfast") {}
+   void getEvent(){
+       std::cout << "Food " << _type << std::endl;
+   } ;
+private:
+   std::string _type;
+};
+
+class Special: public Events{
+public:
+   virtual void getEvent() = 0;
+   virtual ~Special() {};
+};
+
+class Skating:public Special{
+public:
+   Skating() : _type("skating") {}
+   void getEvent(){
+       std::cout << "Special " << _type << std::endl;
+   } ;
+private:
+   std::string _type;
+};
+
+class Circus:public Special{
+public:
+   Circus() : _type("circus") {}
+   void getEvent(){
+       std::cout  << "Special " << _type << std::endl;
+   } ;
+private:
+   std::string _type;
+};
+
+struct Day //структура день, содержащая векторы событий всех типов
+{
+    size_t m_number;
+    std::vector<Events*> events;
+    std::vector<Food*> food;
+    std::vector<Special*> special;
+    void info() 
+    {
+        std::cout << "\nDay " << m_number << " info:" << std::endl; 
+        for (auto& event : events) event->getEvent();        
+        for (auto& event : food) event->getEvent();
+        for (auto& event : special) event->getEvent();
+    }
+    ~Day() 
+    {
+        for (auto& event :  events) delete event;        
+        for (auto& event :  food) delete event;
+        for (auto& event :  special) delete event;
+    }
+};
+
+class DayBuilder
 {
 protected:
-    Strategy* m_strategy;
+    Day* m_day;
 public:
-    virtual void Divide() = 0;
-    virtual void SetStrategy(Strategy* _strategy)
-    {
-        m_strategy = _strategy;
-    }
-    virtual ~TextWork()
-    {
-        delete m_strategy;
-    };
+    DayBuilder(): m_day(nullptr) {};
+    virtual ~DayBuilder() {};
+    virtual void createDay() {};
+    virtual void planEvents() {};
+    virtual void planFood() {};
+    virtual void planSpecial() {};
+    virtual Day* getDay() { return m_day; }
 };
 
-class TextEditor: public TextWork{
-private:
-    size_t EditorWidth;
-    std::string all_text;
+class Day1Builder: public DayBuilder 
+{
 public:
-    TextEditor(){};
-    TextEditor(const std::string &text) : all_text(text) {};
-
-    TextEditor(std::ifstream& file) {
-        std::string line;
-        if (file.is_open()){
-            while (getline(file, line))
-            {
-                all_text+=line;
-            }
-        }
-    }
-
-    void PrintText() const{
-        std::cout << all_text << std::endl;
-    }
-
-    void Divide() 
+    void createDay() override { m_day = new Day; m_day->m_number = 1;}
+    void planEvents() override 
     {
-       std::cout << m_strategy->Divide() << std::endl;
+        m_day->events.push_back(new Hotel);
+        m_day->events.push_back(new Park);
+        m_day->food.push_back(new Dinner);
+    }
+};
+
+class Day2Builder: public DayBuilder 
+{
+public:
+    void createDay() override { m_day = new Day; m_day->m_number = 2;}
+    void planEvents() override 
+    {
+        m_day->events.push_back(new Hotel);
+        m_day->events.push_back(new Park);
+        m_day->food.push_back(new Breakfast);
+        m_day->food.push_back(new Dinner);
+        m_day->special.push_back(new Skating);
+    }
+};
+
+class Day3Builder: public DayBuilder 
+{
+public:
+    void createDay() override { m_day = new Day; m_day->m_number = 3;}
+    void planEvents() override 
+    {
+        m_day->events.push_back(new Park);
+        m_day->food.push_back(new Breakfast);
+        m_day->food.push_back(new Lunch);
+        m_day->special.push_back(new Circus);
+    }
+};
+
+class Planner
+{
+public:
+    Day* createDay(DayBuilder& _builder) 
+    {
+        _builder.createDay();
+        _builder.planEvents();
+        _builder.planFood();
+        _builder.planSpecial();
+        return (_builder.getDay());
     }
 };
 
 //=======================================================
+//Bridge
 
-enum class Position //перечисление для установки позиции
-{
-    begin,
-    end
-};
-
-template <class T>
-class IIterator {
+class DrawingImplementor {
 public:
-	virtual bool hasNext() = 0;
-	virtual bool hasPrev() = 0;
-    virtual T * getNext() = 0;
-	virtual T * getPrev() = 0;
-    virtual void setPosition(Position) = 0;  
-	
+    virtual void drawRectangle(double) = 0;
+    virtual ~DrawingImplementor() {
+    }
 };
 
-template <class T>
-class VectorIterator: public IIterator<T> 
+class PencilDrawingImplementor: public DrawingImplementor
 {
-private:
-    std::vector<T>& m_vector;
-    size_t m_pos;
 public:
-    VectorIterator(std::vector<T>& _vector) 
-    : m_vector(_vector), m_pos(0) {};
-    bool hasNext() override { return (m_pos < m_vector.size()); }
-    bool hasPrev() override { return  (m_pos != 0); }
-    T* getNext() override 
+    PencilDrawingImplementor() = default;
+    void drawRectangle(double _borderwidth) 
     {
-        if (this->hasNext())
-            {
-                return &*(std::next(m_vector.begin(), m_pos++));
-            }
-        return nullptr;
-    }
-    T* getPrev() override 
-    {
-        if (this->hasPrev()) 
-            return &*(std::next(m_vector.begin(), --m_pos));
-        return nullptr;
-    }
-
-    void setPosition(Position _pos) override
-    {
-        switch (_pos)
-        {
-            case Position::begin:
-                m_pos = 0;
-                break;
-            case Position::end:
-                m_pos = m_vector.size();
-                break;
-        }
+        std::cout << "Draw Rectangle with pencil. Width = " << _borderwidth << std::endl;
     }
 };
 
-template <class T>
-class ArrayIterator: public IIterator<T> 
+class BrushDrawingImplementor: public DrawingImplementor
+{
+public: 
+    BrushDrawingImplementor() = default;
+    void drawRectangle(double _borderwidth) 
+    {
+        std::cout << "Draw Rectangle with brush. Width = " << _borderwidth << std::endl;
+    }
+};
+
+
+
+class Shape 
+{
+public:
+    virtual void draw()= 0; // low-level
+    virtual void resize(double pct) = 0; // high-level
+    virtual ~Shape() {
+    }
+};
+
+class Rectangle: public Shape 
 {
 private:
-    std::array<T , 50>& m_array;
-    size_t m_pos;
+    double m_borderwidth;
+    DrawingImplementor* m_implementor;
 public:
-    ArrayIterator(std::array<T, 50>& _array) 
-    : m_array(_array), m_pos(0) {};
-    bool hasNext() override { return (m_pos < m_array.size()); }
-    bool hasPrev() override { return  (m_pos != 0); }
-    T* getNext() override 
+    Rectangle(double _borderwidth, DrawingImplementor* _implementor) 
+    : m_implementor(_implementor), m_borderwidth(_borderwidth) {};
+    virtual ~Rectangle() =default;
+    void draw() 
     {
-        if (this->hasNext())
-            {
-                return &m_array[m_pos++];
-            }
-        return nullptr;
+        this->m_implementor->drawRectangle(m_borderwidth);
     }
-    T* getPrev() override 
+    void resize(double _pct)
     {
-        if (this->hasPrev()) 
-            return &m_array[--m_pos];
-        return nullptr;
-    }
-
-    void setPosition(Position _pos) override
-    {
-        switch (_pos)
-        {
-            case Position::begin:
-                m_pos = 0;
-                break;
-            case Position::end:
-                m_pos = m_array.size();
-                break;
-        }
+        m_borderwidth *= _pct;
     }
 };
 
-class SomeData 
-{
-private:
-    std::string m_string;
-public:
-    SomeData(size_t _num) 
-    {
-        m_string = "Some Data: " + std::to_string(_num);
-    }
-    std::string getData() const 
-    {
-        return m_string;
-    }
-
-    SomeData operator*()
-    {
-        return *this;
-    }
-};
-
-std::ostream& operator<<(std::ostream& _out, const SomeData& _data)
-{
-    return _out << _data.getData() << std::endl;
-};
-
-//=======================================================
-
-class IShape{
-public:
-   virtual void scale(double scale_percentage) = 0;// Масштабируем фигуру
-   virtual void rotate(double angle) = 0;          // Поворачиваем фигуру
-   virtual void flip() = 0;                        // Отражаем фигуру
-};
-
-class Figure: IShape{
-private:
-   int width;
-   int height;
-   double angle;
-   bool isFlipped;
-public:
-   Figure(int width, int height) : width(width), height(height), angle(0.0), isFlipped(false) {}
-
-   void scale(double scale_percentage) override {
-       width *= scale_percentage;
-       height *= scale_percentage;
-   }
-
-   void rotate(double angle) override {
-       angle += angle;
-   }
-
-   void flip() override {
-       isFlipped = !isFlipped;
-   }
-};
-
-class IText{
-   virtual void newSize(int size) = 0;   // Изменяем размер шрифта текста
-   virtual void rotate(double angle) = 0;   // Поворачиваем текст
-   virtual void reverse() = 0;              // Изменяем направление текста
-};
-
-class Text: IText{
-private:
-   int size;
-   bool isReversed;
-   double angle;
-   std::string text;
-public:
-   Text(const std::string text, int size, double angle, bool isReversed) : text(text), size(size), angle(0.0), isReversed(false) {}
-
-public:
-    int* getSize()
-    {
-        return &size;
-    }
-   void newSize(int newSize) override {
-       size = newSize;
-   }
-
-   void rotate(double newAngle) override {
-       angle = newAngle;
-   }
-
-   void reverse() override {
-       for (int i = 0; i < text.size()/2; ++i) {
-           char c = text[i];
-           text[i] = text[text.size() - 1 - i];
-           text[text.size() - 1 - i] = c;
-           isReversed = !isReversed;
-       }
-   }
-};
-
-class TextAdapter: public Figure
-{
-private:
-    Text m_text;
-public:
-    TextAdapter(const Text& _text, int _size): m_text(_text), Figure(_size, _size) //нет конструктора по умолчанию
-    {
-        m_text.newSize(_size);
-    };
-    
-    void scale(double scale_percentage) override {
-       m_text.newSize(*(m_text.getSize()) *= scale_percentage);
-   }
-
-   void rotate(double angle) override {
-       angle += angle;
-   }
-
-   void flip() override {
-       m_text.reverse();
-   }
-};
 
 int main() 
 {
-    Strategy* screenstrategy = new DivideByScreenWidth;
-    Strategy* sentencestrategy = new DivideBySentence;
-    Strategy* userstrategy = new DivideByUserWidth;
-    TextWork* editor = new TextEditor;
-    editor->SetStrategy(screenstrategy);
-    editor->Divide();
-    editor->SetStrategy(sentencestrategy);
-    editor->Divide();
-    editor->SetStrategy(userstrategy);
-    editor->Divide();    
+    PizzaFactory* cheesePizza= new CreateCheesePizza;
+    PizzaFactory* greekPizza= new CreateGreekPizza;
+    PizzaFactory* pepperoniPizza= new CreatePepperoniPizza;
+
+    PizzaFactory* pFactory;
+    pFactory = cheesePizza;
+    PrintOrder(pFactory->createPizza());
+    pFactory = greekPizza;
+    PrintOrder(pFactory->createPizza());
+    pFactory = pepperoniPizza;
+    PrintOrder(pFactory->createPizza());
+
+    delete cheesePizza;
+    delete greekPizza;
+    delete pepperoniPizza;
 
     std::cout << "//=======================================================" << std::endl;
 
-    std::vector<int> vec = {1, 2, 3, 4, 5, 6, 7, 8}; //вектор int
-    VectorIterator vecIt(vec);
-    vecIt.setPosition(Position::end);
-    while (vecIt.hasPrev()) 
-    {
-        std::cout << *vecIt.getPrev() << " ";
-    }
-    std::cout << std::endl;
-    vecIt.setPosition(Position::begin);
-    while (vecIt.hasNext()) 
-    {
-        std::cout << *vecIt.getNext() << " ";
-    }
-    std::cout << std::endl;
-    std::array<SomeData*,50> Data; //пользовательский тип данных в массиве
-    for (size_t i = 0; i < 50; i++) 
-    {
-        Data[i] = new SomeData(i);
-    }
+    Planner planner;
+
+    Day1Builder day1builder;
+    Day2Builder day2builder;
+    Day3Builder day3builder;
+
+    Day* day1 = planner.createDay(day1builder);
+    Day* day2 = planner.createDay(day2builder);
+    Day* day3 = planner.createDay(day3builder);
+
+    day1->info();
+    day2->info();
+    day3->info();
     
-    ArrayIterator dataIt(Data);
-    dataIt.setPosition(Position::begin);
-    while (dataIt.hasNext()) 
-    {
-        std::cout << **dataIt.getNext() << " ";
-    }
-    std::cout << std::endl;
-    while (dataIt.hasPrev()) 
-    {
-        delete *dataIt.getPrev();
-    }
-
-
     std::cout << "\n//=======================================================" << std::endl;
 
-    Text text("Hello world!", 13, 0.0, false);
-    Figure figure(14, 15);
+    DrawingImplementor* penImpltr = new PencilDrawingImplementor;
+    DrawingImplementor* brushImpltr = new BrushDrawingImplementor;
 
-    Figure* textAdapter = new TextAdapter(text, 14);
+    Rectangle rec1(5.5, penImpltr);
+    Rectangle rec2(10.7, brushImpltr);
 
-    textAdapter->flip();
-    figure.flip();
-    textAdapter->rotate(15.4);
-    figure.rotate(15.4);
-    textAdapter->scale(15);
-    figure.scale(15);
+    rec1.draw();
+    rec2.draw();
 
-    delete screenstrategy;
-    delete sentencestrategy;
-    delete userstrategy;
-    delete editor;
-
-    delete textAdapter;
-
+    delete penImpltr;
+    delete brushImpltr;
 
     return 0;
 }
